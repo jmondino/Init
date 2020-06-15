@@ -1,2 +1,3 @@
 # Init
-First Network branch project at 42.
+
+Init introduce us to the DevOps(sysadmin) world.

@@ -1,0 +1,90 @@
+#!/bin/bash
+
+for i in $*
+do
+	if [ ! -d $i ]
+   	then
+	  	echo "\033[31m$i: not a directory.\033[0m"
+	   	exit
+	fi
+done
+read -p "Include a lib ? [y/n] : " YN
+while [ "$YN" != "y" ]
+do
+	if [ "$YN" = "n" ]
+   	then
+		break
+	else
+	read -p "Include a lib ? [y/n] : " YN
+	fi
+done
+if [ "$YN" = "y" ]
+then
+   	read -p "Lib to include : " LIB
+	if [ ! -e $LIB ]
+	then
+		echo "$LIB: Cannot find"
+		exit
+	fi
+fi
+read -p "Name exe : " EXE
+Mak=$(ls | grep "^Makefile$")
+if [ -z "$Mak" ]
+then
+	vim -f +":Stdheader" +"wq" Makefile
+else
+	rm -f Makefile
+   	vim -f +":Stdheader" +"wq" Makefile
+fi
+Mak=$(ls | grep "^Makefile$")
+echo "NAME = $EXE" >> "$Mak"
+echo "\nSRC = \c" >> "$Mak"
+for i in $*
+do
+   	cd $i
+   	FILES=$(ls *.c 2> /dev/null)
+   	if [ -z "$FILES" ]
+	then
+		echo "\033[31m$i: no .c files.\033[0m"
+		cd ..
+		rm -rf "$Mak"
+		exit
+	fi
+	cd ..
+	for k in $FILES
+   	do
+	   	echo "$i/$k \c" >> "$Mak"
+   	done
+done
+if [ $# -eq 0 ]
+then
+	FILES=$(ls *.c 2> /dev/null)
+	if [ -z "$FILES" ]
+	then
+		echo "\033[31m.: no .c files.\033[0m"
+		rm -rf "$Mak"
+		exit
+	fi
+	for i in $FILES
+	do
+		echo "$FILES \c" >> "$Mak"
+	done
+fi
+echo "\n\nFLAGS = -Wextra -Wall -Werror" >> "$Mak"
+echo '\nifndef VERBOSE\n.SILENT:\nendif' >> "$Mak"
+echo '\nall:$(NAME)\n' >> "$Mak"
+echo '$(NAME): $(SRC)' >> "$Mak"
+if [ -z $LIB ]
+then
+	echo "\tgcc \$(FLAGS) -o \$(NAME) \$(SRC)" >> "$Mak"
+elif [ -n $LIB ]
+then
+	echo "\tmake -C $LIB" >> "$Mak"
+	echo "\tgcc \$(FLAGS) -o \$(NAME) \$(SRC) $LIB/$LIB.a" >> "$Mak"
+fi
+echo '\techo "\\033[32m$(NAME) compiled.\\033[0m"' >> "$Mak"
+echo "\nclean:\n\tmake -C $LIB clean" >> "$Mak"
+echo '\techo "\\033[32mObjects files deleted.\\033[0m"' >> "$Mak"
+echo "\nfclean: clean\n\tmake -C $LIB fclean" >> "$Mak"
+echo "\trm -f $EXE" >> "$Mak"
+echo '\nre: fclean all' >> "$Mak"
